@@ -1,0 +1,5 @@
+{
+  "name": "Elevator Rail Calculator",
+  "description": "An interactive engineering calculator for elevator guide rails, analyzing stress, bending, and deflection for Car and Counterweight based on T90A/T70A profiles.",
+  "requestFramePermissions": []
+}
