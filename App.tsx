@@ -4,10 +4,13 @@ import { SystemInputs, RailProperties } from './types';
 import { calculateSafetyGearCase, calculateNormalCase, calculateCounterweight } from './utils/formulas';
 import { InputGroup } from './components/InputGroup';
 import { ResultCard } from './components/ResultCard';
+import { AiAssistant } from './components/AiAssistant';
 import * as XLSX from 'xlsx';
 
 const App: React.FC = () => {
   const [inputs, setInputs] = useState<SystemInputs>(DEFAULT_INPUTS);
+  // Store any extra data found in Excel that isn't part of the standard calculation
+  const [customInputs, setCustomInputs] = useState<Record<string, string | number>>({});
   
   // State for selected rails (dynamic instead of hardcoded)
   const [carRail, setCarRail] = useState<RailProperties>(AVAILABLE_RAILS.find(r => r.name === 'T90/A') || AVAILABLE_RAILS[0]);
@@ -17,6 +20,10 @@ const App: React.FC = () => {
 
   const handleInputChange = (name: string, value: number) => {
     setInputs(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleCustomInputChange = (key: string, value: string | number) => {
+    setCustomInputs(prev => ({ ...prev, [key]: value }));
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,32 +39,41 @@ const App: React.FC = () => {
     const sheet = workbook.Sheets[sheetName];
     const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 }) as any[][];
 
-    // Simple "Dictionary" search logic
-    // We look for rows where the first cell matches one of our input keys (P, Q, L...)
     const newInputs = { ...inputs };
-    let foundCount = 0;
+    const newCustomInputs: Record<string, string | number> = {};
+    let standardFoundCount = 0;
+    let customFoundCount = 0;
 
     jsonData.forEach(row => {
       if (row.length >= 2) {
-        const key = String(row[0]).trim();
-        const val = parseFloat(row[1]);
+        const keyRaw = row[0];
+        const valRaw = row[1];
 
-        // Check if key exists in our inputs (case insensitive check)
-        const inputKey = Object.keys(DEFAULT_INPUTS).find(k => k.toLowerCase() === key.toLowerCase());
+        // Skip empty rows or headers
+        if (!keyRaw) return;
+
+        const key = String(keyRaw).trim();
+        // Try to parse as number, if fails keep as string
+        const valNum = parseFloat(valRaw);
+        const val = isNaN(valNum) ? String(valRaw) : valNum;
+
+        // Check if key exists in our STANDARD inputs (case insensitive check)
+        const standardKey = Object.keys(DEFAULT_INPUTS).find(k => k.toLowerCase() === key.toLowerCase());
         
-        if (inputKey && !isNaN(val)) {
-          (newInputs as any)[inputKey] = val;
-          foundCount++;
+        if (standardKey && typeof val === 'number') {
+          (newInputs as any)[standardKey] = val;
+          standardFoundCount++;
+        } else {
+          // It's a custom input (e.g., "WindSpeed", "SeismicZone")
+          newCustomInputs[key] = val;
+          customFoundCount++;
         }
       }
     });
 
-    if (foundCount > 0) {
-      setInputs(newInputs);
-      alert(`Imported ${foundCount} values from ${file.name}`);
-    } else {
-      alert("No matching input variables (P, Q, L...) found in the first two columns of the Excel sheet.");
-    }
+    setInputs(newInputs);
+    setCustomInputs(newCustomInputs);
+    alert(`Imported ${standardFoundCount} standard parameters and ${customFoundCount} custom/extra parameters from ${file.name}`);
   };
 
   // Perform Calculations
@@ -129,7 +145,7 @@ const App: React.FC = () => {
 
           <div className="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700">
             <h2 className="text-lg font-semibold text-white mb-4 flex items-center justify-between">
-              <span>Input Parameters</span>
+              <span>Standard Parameters</span>
             </h2>
             
             <div className="space-y-6">
@@ -140,6 +156,14 @@ const App: React.FC = () => {
                   <InputGroup label="Q (Rated Load)" name="Q" value={inputs.Q} unit="kg" onChange={handleInputChange} />
                   <InputGroup label="M (CWT)" name="Mctw" value={inputs.Mctw} unit="kg" onChange={handleInputChange} />
                   <InputGroup label="Motor" name="Mot" value={inputs.Mot} unit="kg" onChange={handleInputChange} />
+                </div>
+              </div>
+
+               <div>
+                <h3 className="text-sm font-bold text-slate-300 border-b border-slate-700 pb-2 mb-3">Dynamics</h3>
+                <div className="grid grid-cols-2 gap-4">
+                  <InputGroup label="Rated Speed" name="v_rated" value={inputs.v_rated} unit="m/s" onChange={handleInputChange} step={0.1} />
+                  <InputGroup label="Brake Decel" name="a_brake" value={inputs.a_brake} unit="g" onChange={handleInputChange} step={0.1} />
                 </div>
               </div>
 
@@ -163,11 +187,49 @@ const App: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* DYNAMIC EXTRA INPUTS SECTION */}
+          {Object.keys(customInputs).length > 0 && (
+            <div className="bg-slate-800 rounded-xl p-6 shadow-lg border border-slate-700 animate-fadeIn">
+              <h2 className="text-lg font-semibold text-purple-400 mb-4 flex items-center justify-between">
+                <span>Extra Excel Data</span>
+                <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded">Read by AI</span>
+              </h2>
+              <div className="space-y-3">
+                 {Object.entries(customInputs).map(([key, value]) => (
+                    <div key={key} className="flex flex-col">
+                      <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                        {key}
+                      </label>
+                      <input
+                        type="text"
+                        className="block w-full rounded-md border-0 bg-slate-900 py-2 pl-3 pr-3 text-slate-100 ring-1 ring-inset ring-slate-700 focus:ring-2 focus:ring-purple-500 sm:text-sm"
+                        value={value}
+                        onChange={(e) => handleCustomInputChange(key, e.target.value)}
+                      />
+                    </div>
+                 ))}
+              </div>
+              <p className="text-xs text-slate-500 mt-4 italic">
+                These values are not used in standard EN 81 formulas but are analyzed by the AI Assistant.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Right Column: Results */}
         <div className="lg:col-span-8 space-y-6">
           
+          {/* AI Assistant Section */}
+          <AiAssistant 
+            inputs={inputs} 
+            customInputs={customInputs}
+            carRail={carRail} 
+            cwtRail={cwtRail} 
+            safetyGearResults={safetyGearResults} 
+            normalResults={normalResults} 
+          />
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <ResultCard 
               title={`Car (${carRail.name}): Safety Gear`} 

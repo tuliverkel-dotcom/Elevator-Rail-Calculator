@@ -3,60 +3,61 @@ import { CONSTANTS } from '../constants';
 
 /**
  * Calculates the Safety Gear (Zachytavac) Load Case
- * Based on PDF Page 1 formulas
+ * Based on PDF Page 1 formulas & EN 81-20
  */
 export const calculateSafetyGearCase = (inputs: SystemInputs, rail: RailProperties): CalculationResult => {
-  const { P, Q, k1, Xp, Yp, Xq, Yq, h_k, n_rails } = inputs;
+  const { P, Q, k1, Xp, Yp, Xq, Yq, h_k, n_rails, a_brake } = inputs;
   const { gn } = CONSTANTS;
 
-  // Total braking force (Safety gear operation)
-  // Fv = (P + Q) * gn * k1
-  // Note: PDF output ~23952N. (1100+800)*9.81*1.28? 
-  // We use standard approx or match inputs.
-  // Using PDF logic: Fv is vertical force.
-  const Fv = (P + Q) * gn * 1.25; // Estimated safety factor to match ~23952
+  // 1. Vertical Braking Force (Fv)
+  // The force acting on the rail during safety gear engagement.
+  // Standard: F = (P + Q) * (gn + a_brake)
+  // If a_brake is small/zero in inputs, default to rough estimation (1.25 factor)
+  let brakingDecel = a_brake * gn;
+  if (!brakingDecel || brakingDecel === 0) brakingDecel = 0.25 * gn; // Fallback
 
-  // Bending Moments due to eccentricities during safety gear operation
-  // Assuming safety gear acts, twisting the car.
+  const Fv = (P + Q) * (gn + brakingDecel); 
+
+  // 2. Bending Forces due to Eccentricity (Fx, Fy)
+  // Impact factor k1 is applied here.
   
-  // Forces on Guide Shoes (Simplified engineering model)
-  // Fx = (P*Xp + Q*Xq) / h_k * (some factor)
-  // Let's use the PDF output values to verify the model.
-  // Fx (PDF) = 691.16 N
-  // My (PDF) = 323980 Nmm
-  
-  // Re-implementing standard ISO/EN formulas:
   // Fx = k1 * gn * (P*Xp + Q*Xq) / (n_rails * h_k)
   const Fx = (k1 * gn * (P * Xp + Q * Xq)) / h_k; 
   
   // Fy = k1 * gn * (P*Yp + Q*Yq) / (n_rails * h_k/2)
   const Fy = (k1 * gn * (P * Yp + Q * Yq)) / (h_k / 2);
 
-  // Moments
-  // Mx = Fy * L / 4 (Simple beam approximation)
+  // 3. Moments
   const Mx = (Fy * inputs.L) / 4;
-  
-  // My = Fx * L / 4
   const My = (Fx * inputs.L) / 4;
 
-  // Stresses
-  // Sigma = Moment / SectionModulus
+  // 4. Stresses
   const sigmaX = Mx / rail.Wx;
   const sigmaY = My / rail.Wy;
-  
-  // Combined Stress (Sigma_m)
   const sigmaM = sigmaX + sigmaY;
 
-  // Buckling
-  // Fk = (Fv + k3*Maux) / n_rails... 
-  // Simplified Euler:
+  // 5. Buckling (Vzper)
+  // Slenderness Lambda = L / i_min
   const slenderness = inputs.L / rail.iy;
-  // Lambda calculation often involves lookup tables for Omega. 
-  // PDF uses specific Omega values. Let's approximate based on slenderness.
-  const omega = slenderness > 100 ? 5.25 : 3.47; // Rough step based on PDF hints
   
+  // Omega Method (approximate interpolation)
+  // In a real app, we would have a full CSV table for Steel 370/520
+  let omega = 1.0;
+  if (slenderness < 20) omega = 1.04;
+  else if (slenderness < 40) omega = 1.14;
+  else if (slenderness < 60) omega = 1.30;
+  else if (slenderness < 80) omega = 1.55;
+  else if (slenderness < 100) omega = 1.90; // Approx for Steel 370
+  else if (slenderness < 120) omega = 2.43;
+  else if (slenderness < 140) omega = 3.31;
+  else if (slenderness < 160) omega = 4.32;
+  else omega = 5.25;
+
   const areaMM = rail.area;
-  const sigmaBuckling = (Fv * omega) / (areaMM * n_rails); // Very simplified
+  // Sigma_k = (Fv * omega) / A
+  // Note: For buckling, the force is distributed per rail.
+  // Fv_per_rail = Fv / n_rails
+  const sigmaBuckling = ((Fv / n_rails) * omega) / areaMM;
 
   return {
     forceFx: Fx,
@@ -66,7 +67,7 @@ export const calculateSafetyGearCase = (inputs: SystemInputs, rail: RailProperti
     sigmaX,
     sigmaY,
     sigmaM,
-    deflectionX: 0, // Usually not critical for safety gear (impact)
+    deflectionX: 0, 
     deflectionY: 0,
     slenderness,
     omega,
@@ -76,22 +77,16 @@ export const calculateSafetyGearCase = (inputs: SystemInputs, rail: RailProperti
 
 /**
  * Calculates the Normal Operation (Running) Case
- * Based on PDF Page 1 & 3 "Normal"
  */
 export const calculateNormalCase = (inputs: SystemInputs, rail: RailProperties): CalculationResult => {
   const { P, Q, Xp, Yp, Xq, Yq, h_k, L } = inputs;
   const { gn } = CONSTANTS;
-  
-  // Normal operation forces are smaller (no impact factor k1)
-  // Usually just unbalanced load.
   
   // Forces
   const Fx = (gn * (P * Xp + Q * Xq)) / h_k / 2; // Divided by 2 rails
   const Fy = (gn * (P * Yp + Q * Yq)) / h_k;
 
   // Moments
-  // M = F * L / 6 (Continuous beam assumption often used for rails) or F*L/4
-  // PDF values suggest a specific beam model.
   const Mx = (Fy * L) / 4; 
   const My = (Fx * L) / 4;
 
@@ -127,7 +122,7 @@ export const calculateCounterweight = (inputs: SystemInputs, rail: RailPropertie
    const { Mctw, L, h_ctw } = inputs;
    const { gn } = CONSTANTS;
    
-   // Assume some eccentricity for CWT (usually small, 5-10% of width)
+   // Assume some eccentricity for CWT
    const e_x = rail.b * 0.10; 
    const e_y = rail.h1 * 0.10;
 

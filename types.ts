@@ -1,3 +1,4 @@
+
 export interface RailProperties {
   name: string;
   area: number; // mm2
@@ -22,6 +23,10 @@ export interface SystemInputs {
   Mot: number; // Motor/Accessory mass (kg)
   Mctw: number; // Counterweight mass (kg)
   
+  // Dynamics
+  v_rated: number; // Rated Speed (m/s)
+  a_brake: number; // Safety gear braking deceleration (m/s2). Typically 0.2gn to 1.0gn
+  
   // Dimensions & Geometry
   L: number; // Distance between brackets (mm)
   h_k: number; // Vert dist guide shoes car (mm)
@@ -39,7 +44,7 @@ export interface SystemInputs {
   yi: number; // mm
   
   // Safety Gear (Zachytavac)
-  k1: number; // Impact factor
+  k1: number; // Impact factor (depends on instantaneous vs progressive)
   k2: number; 
   k3: number;
 }

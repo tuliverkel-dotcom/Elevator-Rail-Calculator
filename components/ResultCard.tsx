@@ -18,7 +18,9 @@ const ResultRow = ({ label, value, unit, highlight = false }: { label: string, v
 );
 
 export const ResultCard: React.FC<ResultCardProps> = ({ title, data, isSafetyGear }) => {
-  const isOverStress = data.sigmaM > CONSTANTS.sigma_perm;
+  // Select Limit based on case type
+  const sigmaLimit = isSafetyGear ? CONSTANTS.sigma_perm : CONSTANTS.sigma_perm_normal;
+  const isOverStress = data.sigmaM > sigmaLimit;
   
   return (
     <div className="bg-slate-800 rounded-xl shadow-lg border border-slate-700 overflow-hidden">
@@ -40,7 +42,14 @@ export const ResultCard: React.FC<ResultCardProps> = ({ title, data, isSafetyGea
         <h4 className="text-xs font-bold text-slate-500 uppercase mt-4 mb-2">Stresses</h4>
         <ResultRow label="Sigma X" value={data.sigmaX} unit="MPa" />
         <ResultRow label="Sigma Y" value={data.sigmaY} unit="MPa" />
-        <ResultRow label="Sigma Total" value={data.sigmaM} unit="MPa" highlight />
+        <div className="mt-2">
+            <ResultRow label="Sigma Total" value={data.sigmaM} unit="MPa" highlight />
+            <div className="flex justify-end mt-1">
+                <span className={`text-xs ${isOverStress ? 'text-red-400' : 'text-emerald-400'}`}>
+                    Limit: {sigmaLimit} MPa
+                </span>
+            </div>
+        </div>
 
         {isSafetyGear && (
            <>
