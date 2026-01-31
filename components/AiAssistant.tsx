@@ -10,6 +10,7 @@ interface AiAssistantProps {
   cwtRail: RailProperties;
   safetyGearResults: CalculationResult;
   normalResults: CalculationResult;
+  onAnalysisComplete?: (text: string) => void;
 }
 
 export const AiAssistant: React.FC<AiAssistantProps> = ({ 
@@ -18,14 +19,17 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
   carRail, 
   cwtRail, 
   safetyGearResults, 
-  normalResults 
+  normalResults,
+  onAnalysisComplete
 }) => {
   const [analysis, setAnalysis] = useState<string>('');
   const [loading, setLoading] = useState(false);
 
   const handleAnalyze = async () => {
     if (!process.env.API_KEY) {
-      setAnalysis("Error: API Key is missing. Please check your configuration.");
+      const errorMsg = "Chyba: Chýba API kľúč.";
+      setAnalysis(errorMsg);
+      if(onAnalysisComplete) onAnalysisComplete(errorMsg);
       return;
     }
 
@@ -41,29 +45,31 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
         .join('\n');
 
       const prompt = `
-        You are an expert Elevator Engineer specializing in EN 81-20/50 standards.
-        Analyze the following guide rail calculation data.
+        Správaj sa ako expert na výťahovú techniku a normy EN 81-20/50.
+        Analyzuj nasledujúce výpočty vodidiel. Odpovedaj v **Slovenskom jazyku**.
 
-        **Standard Inputs:**
-        - Load P (Car): ${inputs.P} kg
-        - Load Q (Rated): ${inputs.Q} kg
-        - Bracket Distance L: ${inputs.L} mm
-        - Car Rail: ${carRail.name}
+        **Štandardné Vstupy:**
+        - Hmotnosť P (Kabína): ${inputs.P} kg
+        - Nosnosť Q: ${inputs.Q} kg
+        - Vzdialenosť konzol L: ${inputs.L} mm
+        - Vodidlo Kabíny: ${carRail.name}
         
-        **Extra/Custom Data provided by User (from Excel):**
-        ${customDataStr || "None provided"}
+        **Extra dáta z Excelu (ak sú):**
+        ${customDataStr || "Žiadne extra dáta"}
 
-        **Calculation Results:**
-        - Max Stress (Safety Gear): ${safetyGearResults.sigmaM.toFixed(2)} MPa (Limit: ${CONSTANTS.sigma_perm} MPa)
-        - Max Stress (Normal Run): ${normalResults.sigmaM.toFixed(2)} MPa
-        - Max Deflection: ${Math.max(normalResults.deflectionX, normalResults.deflectionY).toFixed(2)} mm (Limit: ${CONSTANTS.deflection_perm} mm)
-        - Slenderness (Lambda): ${safetyGearResults.slenderness.toFixed(1)}
+        **Výsledky Výpočtov:**
+        - Max Napätie (Zachytávače): ${safetyGearResults.sigmaM.toFixed(2)} MPa (Limit: ${CONSTANTS.sigma_perm} MPa)
+        - Max Napätie (Jazda): ${normalResults.sigmaM.toFixed(2)} MPa
+        - Max Priehyb: ${Math.max(normalResults.deflectionX, normalResults.deflectionY).toFixed(2)} mm (Limit: ${CONSTANTS.deflection_perm} mm)
+        - Štíhlosť (Lambda): ${safetyGearResults.slenderness.toFixed(1)}
 
-        **Instructions:**
-        1. Determine if the installation is safe based on the Standard Calculation Results.
-        2. **CRITICAL:** Look at the "Extra/Custom Data". If the user provided parameters that are NOT standard (e.g., Wind Pressure, Seismic Zone, extra weight, specific safety factors), explain how these *should* impact the result, even if the basic calculator didn't account for them.
-        3. If FAILED: Suggest specific changes.
-        4. If PASSED: Comment on optimization.
+        **Inštrukcie:**
+        1. Zhodnoť, či je inštalácia bezpečná na základe výsledkov.
+        2. **DÔLEŽITÉ:** Pozri sa na "Extra dáta z Excelu". Ak tam sú neštandardné parametre (napr. tlak vetra, seizmicita, extra váha), vysvetli, ako by mali ovplyvniť výsledok, aj keď ich základný kalkulátor nezohľadnil.
+        3. Ak NEVYHOVUJE: Navrhni konkrétne zmeny (napr. väčšie vodidlo, hustejšie konzoly).
+        4. Ak VYHOVUJE: Okomentuj možnú optimalizáciu.
+        
+        Odpoveď formátuj prehľadne, profesionálne a technicky správne v slovenčine.
       `;
 
       const response = await ai.models.generateContent({
@@ -71,11 +77,15 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
         contents: prompt,
       });
 
-      setAnalysis(response.text || 'No response generated.');
+      const text = response.text || 'Žiadna odpoveď nebola vygenerovaná.';
+      setAnalysis(text);
+      if(onAnalysisComplete) onAnalysisComplete(text);
 
     } catch (error) {
       console.error(error);
-      setAnalysis('Failed to generate analysis. Please try again.');
+      const errorMsg = 'Nepodarilo sa vygenerovať analýzu.';
+      setAnalysis(errorMsg);
+      if(onAnalysisComplete) onAnalysisComplete(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -95,7 +105,7 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
               AI Engineering Assistant
             </h2>
             <p className="text-slate-400 text-sm mt-1">
-              Powered by Gemini. Get optimization tips and analysis of custom Excel data.
+              Powered by Gemini. Získajte optimalizáciu a analýzu dát v slovenčine.
             </p>
          </div>
          <button 
@@ -109,10 +119,10 @@ export const AiAssistant: React.FC<AiAssistantProps> = ({
                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                </svg>
-               Analyzing...
+               Analyzujem...
              </>
            ) : (
-             'Run Analysis'
+             'Spustiť Analýzu'
            )}
          </button>
        </div>

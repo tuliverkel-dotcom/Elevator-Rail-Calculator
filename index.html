@@ -19,14 +19,32 @@
         }
       }
     </script>
+    <style>
+      /* Print specific styles to ensure exact A4 look */
+      @media print {
+        @page { margin: 0; size: auto; }
+        body { background: white; color: black; }
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        .page-break { page-break-before: always; }
+        /* Force background colors to print */
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-    "react": "https://esm.sh/react@^19.2.4",
-    "react/": "https://esm.sh/react@^19.2.4/",
+    "react": "https://esm.sh/react@18.2.0",
+    "react/": "https://esm.sh/react@18.2.0/",
+    "react-dom": "https://esm.sh/react-dom@18.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
     "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs",
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0"
+    "@google/genai": "https://esm.sh/@google/genai@0.1.2",
+    "docx": "https://esm.sh/docx@8.5.0",
+    "file-saver": "https://esm.sh/file-saver@2.0.5",
+    "recharts": "https://esm.sh/recharts@2.12.0?external=react,react-dom",
+    "clsx": "https://esm.sh/clsx@2.1.0",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
   }
 }
 </script>
