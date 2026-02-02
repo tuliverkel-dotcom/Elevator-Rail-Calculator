@@ -63,11 +63,3 @@ export interface CalculationResult {
   omega: number;
   sigmaBuckling: number;
 }
-
-export interface ProjectMetadata {
-  projectName: string;
-  customer: string;
-  orderNumber: string;
-  author: string;
-  date: string;
-}
