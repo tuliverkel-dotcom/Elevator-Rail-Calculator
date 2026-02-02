@@ -11,28 +11,53 @@
           extend: {
             colors: {
               slate: {
-                850: '#1e293b',
+                850: '#151e2e',
                 900: '#0f172a',
+                950: '#020617',
+              },
+              primary: {
+                DEFAULT: '#06b6d4', // Cyan 500
+                hover: '#0891b2',   // Cyan 600
+                dim: 'rgba(6, 182, 212, 0.1)'
+              },
+              accent: {
+                DEFAULT: '#d946ef', // Fuchsia 500
+                hover: '#c026d3'
               }
+            },
+            fontFamily: {
+              mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', "Liberation Mono", "Courier New", 'monospace'],
             }
           }
         }
       }
     </script>
+    <style>
+      /* Print styles for PDF Export */
+      @media print {
+        body { background-color: white; color: black; }
+        .no-print { display: none !important; }
+        .print-only { display: block !important; }
+        .card { border: 1px solid #ccc; box-shadow: none; break-inside: avoid; background-color: white !important; color: black !important; }
+        .text-slate-300, .text-slate-400 { color: #333 !important; }
+        .bg-slate-800, .bg-slate-900 { background-color: white !important; }
+        input, select { border: none; background: transparent; color: black; appearance: none; }
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {
     "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
     "react": "https://esm.sh/react@^19.2.4",
     "react/": "https://esm.sh/react@^19.2.4/",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.1/package/xlsx.mjs",
-    "@google/genai": "https://esm.sh/@google/genai@^1.38.0"
+    "@google/genai": "https://esm.sh/@google/genai@^1.39.0"
   }
 }
 </script>
 <link rel="stylesheet" href="/index.css">
 </head>
-  <body class="bg-slate-900 text-slate-200 antialiased">
+  <body class="bg-slate-900 text-slate-100 antialiased overflow-y-scroll custom-scrollbar">
     <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>

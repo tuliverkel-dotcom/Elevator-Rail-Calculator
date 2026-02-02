@@ -1,5 +1,5 @@
 {
-  "name": "Elevator Rail Calculator",
-  "description": "An interactive engineering calculator for elevator guide rails, analyzing stress, bending, and deflection for Car and Counterweight based on T90A/T70A profiles.",
+  "name": "Elevator Rail Force Calculator",
+  "description": "A professional engineering tool for calculating elevator guide rail forces, stresses, and buckling factors. Features dark mode UI, Excel data import simulation, PDF export via print, and AI-powered engineering assistance.",
   "requestFramePermissions": []
 }

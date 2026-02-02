@@ -1,247 +1,235 @@
-import { RailProperties, SystemInputs } from './types';
+import { InputParams, ProjectDetails, RailProfileType, RailProperties } from "./types";
 
-// PDF Page 5 Constants & Excel Data
-export const CONSTANTS = {
-  gn: 9.81, // Gravity
-  E: 2.1e5, // Modulus of Elasticity (MPa)
-  sigma_perm: 205, // Permissible stress (MPa) - Safety Gear Case (Zachytavac)
-  sigma_perm_normal: 165, // Permissible stress (MPa) - Normal/Loading Case
-  deflection_perm: 5, // Max deflection (mm)
-};
-
-// ISO 7465 Standard Rails
-export const RAIL_T45A: RailProperties = {
-  name: 'T45/A',
-  area: 425,
-  weight: 3.33,
-  b: 45,
-  h1: 45,
-  k: 5,
-  n: 5,
-  c: 3, // approx
-  Ix: 68600, // 6.86 cm4
-  Iy: 32600, // 3.26 cm4
-  Wx: 2600,
-  Wy: 1450,
-  ix: 12.7,
-  iy: 8.76
-};
-
-export const RAIL_T50A: RailProperties = {
-  name: 'T50/A',
-  area: 475,
-  weight: 3.73,
-  b: 50,
-  h1: 50,
-  k: 5,
-  n: 5,
-  c: 3,
-  Ix: 112400,
-  Iy: 52500,
-  Wx: 3950,
-  Wy: 2100,
-  ix: 15.4,
-  iy: 10.5
-};
-
-export const RAIL_T70A: RailProperties = {
-  name: 'T70/A',
-  area: 940,
-  weight: 7.379,
-  b: 70, // Standard T70 is 70mm wide (previous code had 65, corrected to standard)
-  h1: 65,
-  k: 6,
-  n: 8,
-  c: 5,
-  Ix: 406500,
-  Iy: 188600,
-  Wx: 9169,
-  Wy: 5389,
-  ix: 20.87,
-  iy: 14.17
-};
-
-export const RAIL_T75A: RailProperties = { // Similar to T70 but wider base
-  name: 'T75/A',
-  area: 1090,
-  weight: 8.55,
-  b: 75,
-  h1: 62,
-  k: 8,
-  n: 7,
-  c: 5,
-  Ix: 407000,
-  Iy: 257000,
-  Wx: 9550,
-  Wy: 6850,
-  ix: 19.3,
-  iy: 15.4
-};
-
-export const RAIL_T82A: RailProperties = {
-  name: 'T82/A',
-  area: 1091,
-  weight: 8.55,
-  b: 82.5,
-  h1: 68.25,
-  k: 6,
-  n: 8.25,
-  c: 5,
-  Ix: 494000,
-  Iy: 323000,
-  Wx: 10600,
-  Wy: 7800,
-  ix: 21.3,
-  iy: 17.2
-};
-
-export const RAIL_T89A: RailProperties = {
-  name: 'T89/A',
-  area: 1570,
-  weight: 12.3,
-  b: 89,
-  h1: 62,
-  k: 10,
-  n: 8,
-  c: 5,
-  Ix: 598000,
-  Iy: 524000,
-  Wx: 14500,
-  Wy: 11800,
-  ix: 19.5,
-  iy: 18.3
-};
-
-export const RAIL_T90A: RailProperties = {
-  name: 'T90/A',
-  area: 1725,
-  weight: 13.54,
-  b: 90, // Corrected standard width
-  h1: 75,
-  k: 10,
-  n: 10,
-  c: 8,
-  Ix: 1020000,
-  Iy: 524800,
-  Wx: 20860,
-  Wy: 11660,
-  ix: 24.31,
-  iy: 17.44
-};
-
-export const RAIL_T114B: RailProperties = {
-  name: 'T114/B',
-  area: 2690,
-  weight: 21.1,
-  b: 114,
-  h1: 89,
-  k: 16,
-  n: 10,
-  c: 8,
-  Ix: 2210000,
-  Iy: 1470000,
-  Wx: 37300,
-  Wy: 25800,
-  ix: 28.7,
-  iy: 23.4
-};
-
-export const RAIL_T125B: RailProperties = {
+/**
+ * Rail Library based on ISO 7465 Standards.
+ * Properties: Weight (kg/m), Area (mm2), Inertia (mm4), Modulus (mm3), Radius of Gyration (mm)
+ */
+export const RAIL_LIBRARY: Record<RailProfileType, RailProperties> = {
+  [RailProfileType.T45_A]: {
+    name: 'T45/A',
+    weight: 3.25,
+    area: 425,
+    Ixx: 16000,
+    Iyy: 8500,
+    Wx: 6300,
+    Wy: 3800,
+    i_min: 11.2
+  },
+  [RailProfileType.T50_A]: {
+    name: 'T50/A',
+    weight: 3.98,
+    area: 475,
+    Ixx: 26000,
+    Iyy: 11500,
+    Wx: 9000,
+    Wy: 4800,
+    i_min: 14.1
+  },
+  [RailProfileType.T70_A]: {
+    name: 'T70/A',
+    weight: 7.379,
+    area: 940,
+    Ixx: 406500,
+    Iyy: 188600,
+    Wx: 9169,
+    Wy: 5389,
+    i_min: 14.17
+  },
+  [RailProfileType.T70_B]: {
+    name: 'T70/B', // Machined
+    weight: 7.379,
+    area: 940,
+    Ixx: 406500,
+    Iyy: 188600,
+    Wx: 9169,
+    Wy: 5389,
+    i_min: 14.17
+  },
+  [RailProfileType.T75_A]: {
+    name: 'T75/A',
+    weight: 11.0,
+    area: 1402,
+    Ixx: 843000,
+    Iyy: 462000,
+    Wx: 16600,
+    Wy: 10200,
+    i_min: 18.15
+  },
+  [RailProfileType.T75_B]: {
+    name: 'T75/B',
+    weight: 11.0,
+    area: 1402,
+    Ixx: 843000,
+    Iyy: 462000,
+    Wx: 16600,
+    Wy: 10200,
+    i_min: 18.15
+  },
+  [RailProfileType.T82_A]: {
+    name: 'T82/A',
+    weight: 13.5,
+    area: 1725,
+    Ixx: 1020000,
+    Iyy: 524000,
+    Wx: 20500,
+    Wy: 11700,
+    i_min: 17.5
+  },
+  [RailProfileType.T82_B]: {
+    name: 'T82/B',
+    weight: 13.5,
+    area: 1725,
+    Ixx: 1020000,
+    Iyy: 524000,
+    Wx: 20500,
+    Wy: 11700,
+    i_min: 17.5
+  },
+  [RailProfileType.T89_A]: {
+    name: 'T89/A',
+    weight: 12.3,
+    area: 1570,
+    Ixx: 898000,
+    Iyy: 450000,
+    Wx: 19700,
+    Wy: 10000,
+    i_min: 16.9
+  },
+  [RailProfileType.T89_B]: {
+    name: 'T89/B',
+    weight: 12.3,
+    area: 1570,
+    Ixx: 898000,
+    Iyy: 450000,
+    Wx: 19700,
+    Wy: 10000,
+    i_min: 16.9
+  },
+  [RailProfileType.T90_A]: {
+    name: 'T90/A',
+    weight: 13.54,
+    area: 1725,
+    Ixx: 1020000,
+    Iyy: 524800,
+    Wx: 20860,
+    Wy: 11660,
+    i_min: 17.44
+  },
+  [RailProfileType.T90_B]: {
+    name: 'T90/B',
+    weight: 13.54,
+    area: 1725,
+    Ixx: 1020000,
+    Iyy: 524800,
+    Wx: 20860,
+    Wy: 11660,
+    i_min: 17.44
+  },
+  [RailProfileType.T114_B]: {
+    name: 'T114/B',
+    weight: 20.7,
+    area: 2620,
+    Ixx: 2580000,
+    Iyy: 1350000,
+    Wx: 37500,
+    Wy: 21500,
+    i_min: 22.7
+  },
+  [RailProfileType.T125_A]: {
+    name: 'T125/A', // Often similar to B in mass, but different finish. Using B props for safety/general
+    weight: 18.0,
+    area: 2280,
+    Ixx: 2330000,
+    Iyy: 1250000,
+    Wx: 35000,
+    Wy: 18000,
+    i_min: 24.0
+  },
+  [RailProfileType.T125_B]: {
     name: 'T125/B',
-    area: 2320, 
-    weight: 18.2,
-    b: 125,
-    h1: 82,
-    k: 16,
-    n: 16,
-    c: 10,
-    Ix: 2000000, 
-    Iy: 1510000,
-    Wx: 33900,
-    Wy: 24200,
-    ix: 29.3,
-    iy: 25.5
-}
-
-export const RAIL_T127B: RailProperties = {
-  name: 'T127-1/B',
-  area: 2860,
-  weight: 22.5,
-  b: 127,
-  h1: 89,
-  k: 16,
-  n: 10,
-  c: 8,
-  Ix: 2560000,
-  Iy: 1980000,
-  Wx: 42100,
-  Wy: 31100,
-  ix: 29.9,
-  iy: 26.3
+    weight: 18.0,
+    area: 2280,
+    Ixx: 2330000,
+    Iyy: 1250000,
+    Wx: 35000,
+    Wy: 18000,
+    i_min: 24.0
+  },
+  [RailProfileType.T127_1_B]: {
+    name: 'T127-1/B',
+    weight: 22.5,
+    area: 2860,
+    Ixx: 3550000,
+    Iyy: 1570000,
+    Wx: 47500,
+    Wy: 25000,
+    i_min: 23.4
+  },
+  [RailProfileType.T127_2_B]: {
+    name: 'T127-2/B',
+    weight: 28.6,
+    area: 3640,
+    Ixx: 5570000,
+    Iyy: 1870000,
+    Wx: 68000,
+    Wy: 29000,
+    i_min: 22.6
+  },
+  [RailProfileType.T140_1_B]: {
+    name: 'T140-1/B',
+    weight: 28.6, // Sometimes listed as 28.6
+    area: 3640,
+    Ixx: 5570000,
+    Iyy: 1870000,
+    Wx: 68000,
+    Wy: 29000,
+    i_min: 22.6
+  },
+  [RailProfileType.T140_2_B]: {
+    name: 'T140-2/B',
+    weight: 37.4,
+    area: 4770,
+    Ixx: 9140000,
+    Iyy: 2350000,
+    Wx: 98000,
+    Wy: 33500,
+    i_min: 22.2
+  },
+  [RailProfileType.T140_3_B]: {
+    name: 'T140-3/B',
+    weight: 46.0,
+    area: 5860,
+    Ixx: 13900000,
+    Iyy: 2790000,
+    Wx: 135000,
+    Wy: 39500,
+    i_min: 21.8
+  }
 };
 
-export const RAIL_T140B: RailProperties = { // Heavy Duty
-  name: 'T140-1/B',
-  area: 3500,
-  weight: 27.4,
-  b: 140,
-  h1: 108,
-  k: 19,
-  n: 12,
-  c: 10,
-  Ix: 4990000,
-  Iy: 3000000,
-  Wx: 69900,
-  Wy: 42800,
-  ix: 37.7,
-  iy: 29.2
+export const INITIAL_PROJECT: ProjectDetails = {
+  customer: "Skyline Towers Inc.",
+  reference: "Lift Group A - Shaft 1",
+  projectNumber: "PRJ-2024-001",
+  date: new Date().toISOString().split('T')[0]
 };
 
-
-export const AVAILABLE_RAILS = [
-  RAIL_T45A,
-  RAIL_T50A,
-  RAIL_T70A,
-  RAIL_T75A,
-  RAIL_T82A,
-  RAIL_T89A,
-  RAIL_T90A,
-  RAIL_T114B,
-  RAIL_T125B,
-  RAIL_T127B,
-  RAIL_T140B
-];
-
-// UPDATED DEFAULTS based on User Excel
-export const DEFAULT_INPUTS: SystemInputs = {
-  // Load Params
-  P: 1100, // Car Mass
-  Q: 800,  // Rated Load
-  Mot: 300,
-  Mctw: 1500,
-  
-  // Dynamics
-  v_rated: 1.0, // Default for T90/T70 systems usually
-  a_brake: 2.8, // Derived from Excel Fv approx (approx 0.3gn)
-
-  // Geometry
+export const INITIAL_INPUTS: InputParams = {
+  P: 1100,
+  Q: 800,
+  M_cwt: 1500,
+  Motor: 300,
+  ratedSpeed: 1.0,
+  brakeDecel: 0.5, // g
   L: 2500,
-  h_k: 3300,
-  h_ctw: 3000,
-  n_rails: 2,
-
-  // Eccentricities (Matches Excel)
-  Xp: 75,
-  Yp: 10,
-  Xq: 187.5,
-  Yq: 162.5,
-  
-  // Shoes
-  xi: 800,
-  yi: 100,
-  
-  // Safety Factors (Matches Excel)
-  k1: 2,
-  k2: 1.2,
-  k3: 1.2,
+  h_car: 3300,
+  h_cwt: 3000,
+  xp: 75,
+  yp: 10,
+  xq: 187.5,
+  yq: 162.5,
+  xc: 0,
+  yc: 0,
+  carRail: RailProfileType.T90_A,
+  cwtRail: RailProfileType.T70_A
 };
